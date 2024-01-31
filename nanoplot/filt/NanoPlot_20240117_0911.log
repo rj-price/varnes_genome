@@ -1,0 +1,24 @@
+2024-01-17 09:11:47,876 NanoPlot 1.41.6 started with arguments Namespace(threads=2, verbose=False, store=False, raw=False, huge=False, outdir='/mnt/shared/scratch/jnprice/rubus/nanoplot/filt/', no_static=False, prefix='', tsv_stats=False, info_in_report=False, maxlength=None, minlength=None, drop_outliers=False, downsample=None, loglength=False, percentqual=False, alength=False, minqual=None, runtime_until=None, readtype='1D', barcoded=False, no_supplementary=False, color='#4CB391', colormap='Greens', format=['png'], plots=['kde', 'dot'], legacy=None, listcolors=False, listcolormaps=False, no_N50=False, N50=False, title=None, font_scale=1, dpi=100, hide_stats=False, fastq=['/mnt/shared/scratch/jnprice/rubus/Rsp4_filt.fastq.gz'], fasta=None, fastq_rich=None, fastq_minimal=None, summary=None, bam=None, ubam=None, cram=None, pickle=None, feather=None, path='/mnt/shared/scratch/jnprice/rubus/nanoplot/filt/')
+2024-01-17 09:11:47,877 Python version is: 3.9.9 | packaged by conda-forge | (main, Dec 20 2021, 02:41:03)  [GCC 9.4.0]
+2024-01-17 09:11:48,258 Nanoget: Starting to collect statistics from plain fastq file.
+2024-01-17 09:11:48,259 Nanoget: Decompressing gzipped fastq /mnt/shared/scratch/jnprice/rubus/Rsp4_filt.fastq.gz
+2024-01-17 11:15:13,579 Reduced DataFrame memory usage from 69.65311431884766Mb to 46.43540954589844Mb
+2024-01-17 11:15:13,710 Nanoget: Gathered all metrics of 3043191 reads
+2024-01-17 11:15:15,239 Calculated statistics
+2024-01-17 11:15:15,254 Using sequenced read lengths for plotting.
+2024-01-17 11:15:15,389 NanoPlot:  Valid color #4CB391.
+2024-01-17 11:15:15,390 NanoPlot:  Valid colormap Greens.
+2024-01-17 11:15:15,563 NanoPlot:  Creating length plots for Read length.
+2024-01-17 11:15:15,567 NanoPlot:  Using 3043191 reads maximum of 228703bp.
+2024-01-17 11:15:26,150 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/WeightedHistogramReadlength  as png (or png for --legacy)
+2024-01-17 11:15:27,763 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/WeightedLogTransformed_HistogramReadlength  as png (or png for --legacy)
+2024-01-17 11:15:29,212 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/Non_weightedHistogramReadlength  as png (or png for --legacy)
+2024-01-17 11:15:30,570 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/Non_weightedLogTransformed_HistogramReadlength  as png (or png for --legacy)
+2024-01-17 11:15:54,600 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/Yield_By_Length  as png (or png for --legacy)
+2024-01-17 11:15:54,602 Created length plots
+2024-01-17 11:15:54,723 NanoPlot: Creating Read lengths vs Average read quality plots using 3043191 reads.
+2024-01-17 11:15:57,465 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/LengthvsQualityScatterPlot_dot  as png (or png for --legacy)
+2024-01-17 11:16:00,455 Saved /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/LengthvsQualityScatterPlot_kde  as png (or png for --legacy)
+2024-01-17 11:16:00,458 Created LengthvsQual plot
+2024-01-17 11:16:00,459 Writing html report.
+2024-01-17 11:16:00,616 Finished!
