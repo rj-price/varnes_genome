@@ -1,108 +1,116 @@
 # Varnes Genome Analysis
 
-Download ONT data from Novogene and check md5s. **All good!**
+Download ONT data from Novogene and check md5s. \
+**All good!**
+
+## Environmental variables
+```
+workDir=/mnt/shared/scratch/jnprice/varnes_genome
+scriptsDir=/mnt/shared/scratch/jnprice/varnes_genome/scripts
+```
 
 ## QC
 Uncompress ```fastq_pass.tgz``` file. Trim adapters with Porechop and gzip trimmed reads.
 ```
-sbatch /mnt/shared/scratch/jnprice/rubus/porechop.sh \
+sbatch $scriptsDir/porechop.sh \
     /mnt/shared/projects/niab/jnprice/rubus/Varnes/20240111_nanopore/ONT/Rsp4/TJPROJ6/TGS/haiwai/haiwai/HW_ONT_qc/X204SC23116571-Z01-F001/data_release/X204SC23116571-Z01-F001/raw_data/Rsp4/20231221_1538_4H_PAS75777_f65d910b/fastq_pass \
-    /mnt/shared/scratch/jnprice/rubus/Rsp4_trim.fastq
+    $workDir/Rsp4_trim.fastq
 
-gzip Rsp4_trim.fastq
+gzip $workDir/Rsp4_trim.fastq
 ```
 
 Check trimmed reads with NanoPlot
 ```
-sbatch /home/jnprice/scripts/shell_scripts/read_qc/nanoplot_fastq.sh \
-    /mnt/shared/scratch/jnprice/rubus/Rsp4_trim.fastq.gz \
-    /mnt/shared/scratch/jnprice/rubus/nanoplot/trimmed/
+sbatch $scriptsDir/nanoplot_fastq.sh \
+    $workDir/Rsp4_trim.fastq.gz \
+    $workDir/nanoplot/trimmed/
 ```
 
-Remove reads <10kb and Q<12 with Filtlong
+### Filtering
+Generate two read sets based on quality scores using Filtlong and QC using NanoPlot.
+
+Q12+ and 10kb+
 ```
-sbatch filtlong.sh /mnt/shared/scratch/jnprice/rubus/Rsp4_trim.fastq.gz
+sbatch $scriptsDir/filtlong.sh $workDir/Rsp4_trim.fastq.gz
+
+sbatch $scriptsDir/nanoplot_fastq.sh \
+    $workDir/Rsp4_filt.fastq.gz \
+    $workDir/nanoplot/filt/
 ```
 
-Check filtered reads with NanoPlot
+Q17+ and 1kb+
 ```
-sbatch /home/jnprice/scripts/shell_scripts/read_qc/nanoplot_fastq.sh \
-    /mnt/shared/scratch/jnprice/rubus/Rsp4_filt.fastq.gz \
-    /mnt/shared/scratch/jnprice/rubus/nanoplot/filt/
+sbatch $scriptsDir/filtlong_highqual.sh $workDir/Rsp4_trim.fastq.gz
+
+sbatch $scriptsDir/nanoplot_fastq.sh \
+    $workDir/Rsp4_highqual.fastq.gz \
+    $workDir/nanoplot/highqual/
 ```
 
 ## Assembly
 
 ### NECAT
-Generate config file
+Generate config files
 ```
-bash ~/scripts/shell_scripts/genome_assembly/necat_config.sh /mnt/shared/scratch/jnprice/rubus/Rsp4_filt.fastq.gz
-```
-
-Edit config file
-```
-PROJECT=Rsp4_filt
-ONT_READ_LIST=read_list.txt
-GENOME_SIZE=270000000
-THREADS=16
+bash $scriptsDir/necat_config.sh $workDir/Rsp4_filt.fastq.gz
+bash $scriptsDir/necat_config.sh $workDir/Rsp4_highqual.fastq.gz
 ```
 
-Run assembly
+Edit config files
+||Q12+ 30x |Q12+ 80x|Q17+ 30x |Q17+ 80x |
+|--|--|--|--|--|
+|PROJECT=|Rsp4_filt|Rsp4_filt_x80 |Rsp4_highqual | Rsp4_highqual_x80 | |
+|ONT_READ_LIST=|read_list.txt|read_list.txt |read_list.txt |read_list.txt | |
+|GENOME_SIZE=|270000000|270000000 |270000000 |270000000 | |
+|THREADS=|16|16 |16 |16 | |
+|MIN_READ_LENGTH=|10000|10000 |10000 |10000 | |
+|PREP_OUTPUT_COVERAGE=|40|80 |40 |80 | |
+|CNS_OUTPUT_COVERAGE=|30|80 | 30|80 | |
+
+<br>
+
+Run assemblies
 ```
-sbatch ~/scripts/shell_scripts/genome_assembly/necat.sh Rsp4_filt_config.txt
+sbatch $scriptsDir/necat.sh config.txt
 ```
 
 ### QC
 ```
 for file in *.fasta; 
-    do sbatch /home/jnprice/scripts/shell_scripts/genome_qc/busco_eudicots.sh $file
+    do sbatch $scriptsDir/busco_eudicots.sh $file
     done
 
 for file in *.fasta;
-    do python /home/jnprice/scripts/shell_scripts/genome_qc/assembly_stats.py $file
-    done && python /home/jnprice/scripts/shell_scripts/genome_qc/assembly_stats_concat.py *stats
+    do python $scriptsDir/assembly_stats.py $file
+    done \
+    && python $scriptsDir/assembly_stats_concat.py *stats
 
 cp BUSCO_*/short* . && for file in *txt;
-    do python /home/jnprice/scripts/shell_scripts/genome_qc/busco_extract.py $file
-    done && python /home/jnprice/scripts/shell_scripts/genome_qc/busco_concat.py *busco
+    do python $scriptsDir/busco_extract.py $file
+    done \
+    && python $scriptsDir/busco_concat.py *busco
 ```
 
 ### Purge Heterozygous Contigs
-
+Identify and remove haplotigs and overlapping heterozygous contigs.
 ```
-for file in /mnt/shared/scratch/jnprice/rubus/purge_dups/*fasta;
-    do sbatch /home/jnprice/scripts/shell_scripts/genome_assembly/purge_dups.sh $file \
-        /mnt/shared/scratch/jnprice/rubus/Rsp4_highqual.fastq.gz
+for file in $workDir/purge_dups/*fasta;
+    do sbatch $scriptsDir/purge_dups.sh $file \
+        $workDir/Rsp4_highqual.fastq.gz
     done
 ```
-
-
-## Polishing
-
-Select high quality reads (>1kb and >Q17) for polishing
-```
-sbatch filtlong_highqual.sh /mnt/shared/scratch/jnprice/rubus/Rsp4_trim.fastq.gz
-```
-
-Check high quality reads with NanoPlot
-```
-sbatch /home/jnprice/scripts/shell_scripts/read_qc/nanoplot_fastq.sh \
-    /mnt/shared/scratch/jnprice/rubus/Rsp4_highqual.fastq.gz \
-    /mnt/shared/scratch/jnprice/rubus/nanoplot/highqual/
-```
-
 
 ### Long Read Polishing
-Polish purged assembly with filtered reads and high quality reads and compare
+Polish purged assembly with filtered reads and high quality reads and compare.
 
 ```
-for file in /mnt/shared/scratch/jnprice/rubus/long_polish/*fasta;
-    do sbatch /home/jnprice/scripts/shell_scripts/genome_assembly/long_polish.sh \
-        /mnt/shared/scratch/jnprice/rubus/Rsp4_filt.fastq.gz $file
+for file in $workDir/long_polish/*fasta;
+    do sbatch $scriptsDir/long_polish.sh \
+        $workDir/Rsp4_filt.fastq.gz $file
     done
 
-for file in /mnt/shared/scratch/jnprice/rubus/long_polish/*fasta;
-    do sbatch /home/jnprice/scripts/shell_scripts/genome_assembly/long_polish.sh \
-        /mnt/shared/scratch/jnprice/rubus/Rsp4_highqual.fastq.gz $file
+for file in $workDir/long_polish/*fasta;
+    do sbatch $scriptsDir/long_polish.sh \
+        $workDir/Rsp4_highqual.fastq.gz $file
     done
 ```
