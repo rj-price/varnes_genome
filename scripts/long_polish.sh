@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -J long_polish
-#SBATCH --partition=medium
-#SBATCH --mem=180G
+#SBATCH --partition=himem
+#SBATCH --mem=240G
 #SBATCH --cpus-per-task=8
 
 Reads=$1
