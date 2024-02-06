@@ -47,6 +47,34 @@ sbatch $scriptsDir/nanoplot_fastq.sh \
     $workDir/nanoplot/highqual/
 ```
 
+## Analysis of Structural Variants
+Align reads to Malling Jewel using LRA, sort and index bam, and calculate 1Mb coverage.
+```
+lra index -ONT RiMJ_ragtag_HiC.fasta
+
+sbatch $scriptsDir/long_read_aligner.sh $workDir/Rsp4_highqual.fastq.gz $workDir/svim/RiMJ_ragtag_HiC.fasta
+```
+
+Call SVs with SVIM (https://github.com/eldariont/svim/wiki)
+```
+sbatch $scriptsDir/svim.sh $workDir/svim/Rsp4_highqual.sorted.bam $workDir/svim/RiMJ_ragtag_HiC.fasta
+```
+
+Filter variants
+```
+conda activate sam_bcf_tools_env
+
+bcftools view variants.vcf -H -i 'QUAL>40 && SUPPORT>10 && FILTER="PASS"' | wc -l
+# 42269
+
+bcftools view variants.vcf -i 'QUAL>40 && SUPPORT>10 && FILTER="PASS"' > sv_filt.vcf
+```
+
+Insertion in ANS gene!!
+```
+HiC_scaffold_5_RagTag	7906987	svim.INS.46403	N	<INS>	44	PASS	SVTYPE=INS;END=7906987;SVLEN=4337;SUPPORT=36;STD_SPAN=10.63;STD_POS=5.44	GT:DP:AD	0/1:60:24,36
+```
+
 ## Assembly
 
 ### NECAT
@@ -113,19 +141,93 @@ for file in $workDir/purge_dups/*fasta;
     done
 ```
 
+### Scaffolding using LongStitch
+Pull & test container
+```
+apptainer pull docker://ebird013/longstitch:1.0.5
+
+apptainer exec --bind /mnt/shared:/mnt/shared -H /mnt/shared/home/jnprice $APPS/singularity_cache/longstitch_1.0.5.sif longstitch run
+```
+
+```
+sbatch $scriptsDir/longstitch.sh \
+    $workDir/purge_dups/Rsp4_filt_necat_x80_purged.fasta \
+    $workDir/Rsp4_filt.fastq.gz \
+    270m
+```
+
+### Dgenies
+Align scaffolded assembly to MJ using Dgenies
+
+HiC_scaffold_1_RagTag   =   ntLink_0, ntLink_6
+HiC_scaffold_2_RagTag   =   ntLink_1
+HiC_scaffold_3_RagTag   =   ntLink_2
+HiC_scaffold_4_RagTag   =   bctg00000004_1, ntLink_11, ntLink_3
+HiC_scaffold_5_RagTag   =   ntLink_4, ntLink_10, ntLink_7, 
+HiC_scaffold_6_RagTag   =   bctg00000027_1, ntLink_5, 
+HiC_scaffold_7_RagTag   =   ntLink_8
+
 ### Long Read Polishing
 Polish purged assemblies with filtered reads and high quality reads, and compare.
 ```
-for file in $workDir/long_polish/*fasta;
-    do sbatch $scriptsDir/long_polish.sh \
-        $workDir/Rsp4_filt.fastq.gz $file
-    done
-
-for file in $workDir/long_polish/*fasta;
-    do sbatch $scriptsDir/long_polish.sh \
-        $workDir/Rsp4_highqual.fastq.gz $file
-    done
+sbatch $scriptsDir/long_polish.sh \
+    $workDir/Rsp4_highqual.fastq.gz \
+    $workDir/longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta
 ```
+
+### Organelle Check
+Download NCBI mitochondial and chloroplast databases
+```
+wget https://ftp.ncbi.nlm.nih.gov/refseq/release/mitochondrion/mitochondrion.1.1.genomic.fna.gz
+wget https://ftp.ncbi.nlm.nih.gov/refseq/release/plastid/plastid.1.1.genomic.fna.gz
+wget https://ftp.ncbi.nlm.nih.gov/refseq/release/plastid/plastid.2.1.genomic.fna.gz
+wget https://ftp.ncbi.nlm.nih.gov/refseq/release/plastid/plastid.3.1.genomic.fna.gz
+```
+Uncompress and make BLAST dbs
+```
+makeblastdb -in mitochondrion.1.1.genomic.fna -dbtype nucl -out mito
+makeblastdb -in plastid.1.1.genomic.fna -dbtype nucl -out plas1
+makeblastdb -in plastid.2.1.genomic.fna -dbtype nucl -out plas2
+makeblastdb -in plastid.3.1.genomic.fna -dbtype nucl -out plas3
+```
+
+BLASTn contigs to organelle dbs
+```
+blastn \
+    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -db mito \
+    -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
+    > mito_results.outfmt6
+
+blastn \
+    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -db plas1 \
+    -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
+    > plas1_results.outfmt6
+
+blastn \
+    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -db plas2 \
+    -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
+    > plas2_results.outfmt6
+
+blastn \
+    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -db plas3 \
+    -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
+    > plas3_results.outfmt6
+```
+
+Extract number of hits and total hit length
+```
+awk -F'\t' '{ count[$1]++; sum[$1]+=$4 } END { for (value in count) print value, count[value], sum[value] }' mito_results.outfmt6
+awk -F'\t' '{ count[$1]++; sum[$1]+=$4 } END { for (value in count) print value, count[value], sum[value] }' plas1_results.outfmt6
+awk -F'\t' '{ count[$1]++; sum[$1]+=$4 } END { for (value in count) print value, count[value], sum[value] }' plas2_results.outfmt6
+awk -F'\t' '{ count[$1]++; sum[$1]+=$4 } END { for (value in count) print value, count[value], sum[value] }' plas3_results.outfmt6
+```
+
+**Mitochondrial genome = ntLink_9**
+**Plastid genome = bctg00000110_1**
 
 ### Polish with Illumina data
 
@@ -163,33 +265,46 @@ sbatch ../scripts/quast.sh \
     /mnt/shared/scratch/jnprice/varnes_genome/long_polish/highqual/Rsp4_highqual_necat_purged_racon.fasta
 ```
 
-## Structural Variants
-Align reads using LRA, sort and index bam, and calculate 1Mb coverage
-```
-lra index -ONT RiMJ_ragtag_HiC.fasta
-
-sbatch $scriptsDir/long_read_aligner.sh $workDir/Rsp4_highqual.fastq.gz $workDir/svim/RiMJ_ragtag_HiC.fasta
-```
-
-Call SVs with SVIM (https://github.com/eldariont/svim/wiki)
-```
-sbatch $scriptsDir/svim.sh $workDir/svim/Rsp4_highqual.sorted.bam $workDir/svim/RiMJ_ragtag_HiC.fasta
-```
 
 ### Dotplot Test **WORKED**
 ```
-sbatch minimap.sh ../svim/RiMJ_ragtag_HiC.fasta ../long_polish/highqual/Rsp4_highqual_necat_purged_racon.fasta .
+sbatch minimap.sh ../svim/RiMJ_ragtag_HiC.fasta ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta .
 
 sbatch ~/scripts/shell_scripts/genome_comparison/dotplot/create_dotplot.sh \
     /mnt/shared/scratch/jnprice/varnes_genome/dotplot_test/minimap.paf \
     /mnt/shared/scratch/jnprice/varnes_genome/dotplot_test
 ```
 
-Sat  3 Feb 10:22:32 GMT 2024
-             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-          15817832     himem long_pol  jnprice  R 1-02:39:17      1 n17-28-1536-apollo
-          15817833     himem long_pol  jnprice  R 1-02:39:17      1 n17-28-1536-apollo
-          15817835      long    quast  jnprice  R 1-02:38:47      1 n19-32-192-ultron
-          15817834      long    pilon  jnprice  R 1-02:42:02      1 n19-32-192-taserface
-          15826782      long     svim  jnprice  R       6:24      1 n19-32-192-mantis
-          15826759    medium purge_du  jnprice  R      15:09      1 n19-32-192-ego
+### Synteny plots
+```
+# Generate chromosome length files
+faidx ../svim/RiMJ_ragtag_HiC.fasta -i chromsizes > MJ_ls.len
+faidx ../long_polish/highqual/Rsp4_highqual_necat_purged_racon.fasta -i chromsizes > Rsp4_ls.len
+
+# Remove alignments under 10kb
+awk -F'\t' '$11 >= 10000' minimap.paf > minimap_10kb.paf
+
+# Convert PAFs to link files
+cat minimap_10kb.paf | cut -f1,3,4,6,8,9 > MJ_vs_Rsp4.link
+
+# Run NGenomeSyn locally
+```
+
+## RepearModeler & RepeatMasker
+Pull container & test
+```
+apptainer pull docker://dfam/tetools:1.88
+
+apptainer exec --bind /mnt/shared:/mnt/shared -H /mnt/shared/home/jnprice $APPS/singularity_cache/tetools_1.88.sif RepeatModeler -help
+```
+
+```
+#! -pa = threads
+
+BuildDatabase -name arabidopsis TAIR10_chr_all.fas
+
+RepeatModeler -database arabidopsis -pa 16 -LTRStruct > out.log
+
+RepeatMasker -pa 16 -gff -lib consensi.fa.classified -dir MaskerOutput TAIR10_chr_all.fas
+
+```
