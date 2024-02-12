@@ -9,7 +9,7 @@ workDir=/mnt/shared/scratch/jnprice/varnes_genome
 scriptsDir=/mnt/shared/scratch/jnprice/varnes_genome/scripts
 ```
 
-## QC
+## QC reads
 Uncompress ```fastq_pass.tgz``` file. Trim adapters with Porechop and gzip trimmed reads.
 ```
 sbatch $scriptsDir/porechop.sh \
@@ -115,7 +115,7 @@ for folder in $workDir/assemblies/*/R*/R*/;
     done
 ```
 
-### QC
+### QC assemblies
 ```
 for file in *.fasta; 
     do sbatch $scriptsDir/busco_eudicots.sh $file
@@ -156,17 +156,6 @@ sbatch $scriptsDir/longstitch.sh \
     270m
 ```
 
-### Dgenies
-Align scaffolded assembly to MJ using Dgenies
-
-HiC_scaffold_1_RagTag   =   ntLink_0, ntLink_6
-HiC_scaffold_2_RagTag   =   ntLink_1
-HiC_scaffold_3_RagTag   =   ntLink_2
-HiC_scaffold_4_RagTag   =   bctg00000004_1, ntLink_11, ntLink_3
-HiC_scaffold_5_RagTag   =   ntLink_4, ntLink_10, ntLink_7, 
-HiC_scaffold_6_RagTag   =   bctg00000027_1, ntLink_5, 
-HiC_scaffold_7_RagTag   =   ntLink_8
-
 ### Long Read Polishing
 Polish purged assemblies with filtered reads and high quality reads, and compare.
 ```
@@ -194,25 +183,25 @@ makeblastdb -in plastid.3.1.genomic.fna -dbtype nucl -out plas3
 BLASTn contigs to organelle dbs
 ```
 blastn \
-    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -query $workDir/longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
     -db mito \
     -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
     > mito_results.outfmt6
 
 blastn \
-    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -query $workDir/longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
     -db plas1 \
     -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
     > plas1_results.outfmt6
 
 blastn \
-    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -query $workDir/longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
     -db plas2 \
     -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
     > plas2_results.outfmt6
 
 blastn \
-    -query ../longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
+    -query $workDir/longstitch/Rsp4_filt_necat_x80_purged_longstitch.fasta \
     -db plas3 \
     -max_target_seqs 3 -outfmt 6 -evalue 1e-3 -num_threads 2 \
     > plas3_results.outfmt6
@@ -226,32 +215,72 @@ awk -F'\t' '{ count[$1]++; sum[$1]+=$4 } END { for (value in count) print value,
 awk -F'\t' '{ count[$1]++; sum[$1]+=$4 } END { for (value in count) print value, count[value], sum[value] }' plas3_results.outfmt6
 ```
 
-**Mitochondrial genome = ntLink_9**
+**Mitochondrial genome = ntLink_9, bctg00000119_1, bctg00000134_1, bctg00000154_1**
 **Plastid genome = bctg00000110_1**
+
+### Dgenies
+Align scaffolded assembly to MJ using Dgenies
+
+HiC_scaffold_1_RagTag   =   ntLink_0, ntLink_6
+HiC_scaffold_2_RagTag   =   ntLink_1
+HiC_scaffold_3_RagTag   =   ntLink_2
+HiC_scaffold_4_RagTag   =   bctg00000004_1, ntLink_11, ntLink_3
+HiC_scaffold_5_RagTag   =   ntLink_4, ntLink_10, ntLink_7, 
+HiC_scaffold_6_RagTag   =   bctg00000027_1, ntLink_5, 
+HiC_scaffold_7_RagTag   =   ntLink_8
+
+**Small repetitive contigs**\
+bctg00000123_1  41,124bp
+bctg00000135_1  82,325bp
+bctg00000145_1  25,911bp
+bctg00000152_1  31,209bp
+
+**Larger sequences found in other contigs**\
+bctg00000095_1  457,930bp
+bctg00000111_1  164,386bp
 
 ### Polish with Illumina data
 
-#### QC reads
+QC reads
 ```
 for file in /mnt/shared/projects/niab/dsargent/Rubus/Varnes_genome_sequence/X204SC22053791-Z01-F001/raw_data/R_Va/*gz;
     do sbatch $scriptsDir/fastqc.sh $file
     done
 ```
 
----
-# TOOL TESTING
-
-#### Pilon test
+Run Pilon
 ```
-sbatch ../scripts/pilon_2lib-aa.sh \
-    ~/scratch/varnes_genome/long_polish/highqual/Rsp4_highqual_necat_purged_racon.fasta \
+sbatch $scriptsDir/pilon_2lib-aa.sh \
+    $workDir/long_polish/Rsp4_filt_necat_x80_purged_longstitch_medaka.fasta \
     /mnt/shared/projects/niab/dsargent/Rubus/Varnes_genome_sequence/X204SC22053791-Z01-F001/raw_data/R_Va/R_Va_EDSW220016932-1a_HKG55DSX3_L2_1.fq.gz \
     /mnt/shared/projects/niab/dsargent/Rubus/Varnes_genome_sequence/X204SC22053791-Z01-F001/raw_data/R_Va/R_Va_EDSW220016932-1a_HKG55DSX3_L2_2.fq.gz \
     /mnt/shared/projects/niab/dsargent/Rubus/Varnes_genome_sequence/X204SC22053791-Z01-F001/raw_data/R_Va/R_Va_EDSW220016932-1a_HKG72DSX3_L4_1.fq.gz \
     /mnt/shared/projects/niab/dsargent/Rubus/Varnes_genome_sequence/X204SC22053791-Z01-F001/raw_data/R_Va/R_Va_EDSW220016932-1a_HKG72DSX3_L4_2.fq.gz \
-    ~/scratch/varnes_genome/pilon_test/ \
+    ./ \
     3
 ```
+
+## RepearModeler & RepeatMasker
+Pull container & test
+```
+apptainer pull docker://dfam/tetools:1.88
+
+apptainer exec --bind /mnt/shared:/mnt/shared -H /mnt/shared/home/jnprice $APPS/singularity_cache/tetools_1.88.sif RepeatModeler -help
+```
+
+```
+sbatch ../scripts/repeatmasker.sh Rsp4_filt_necat_x80_purged_longstitch_medaka_pilon.fasta rubus
+```
+
+
+TO DO:
+- Predict repeats
+- Remove repetitive and organellar contigs from final genome file.
+- Comparative plots (dotplot, circos, synteny)
+- Annotate
+
+
+# TOOL TESTING
 
 ## Quast Test
 ```
@@ -264,7 +293,6 @@ sbatch ../scripts/quast.sh \
     . \
     /mnt/shared/scratch/jnprice/varnes_genome/long_polish/highqual/Rsp4_highqual_necat_purged_racon.fasta
 ```
-
 
 ### Dotplot Test **WORKED**
 ```
@@ -290,21 +318,3 @@ cat minimap_10kb.paf | cut -f1,3,4,6,8,9 > MJ_vs_Rsp4.link
 # Run NGenomeSyn locally
 ```
 
-## RepearModeler & RepeatMasker
-Pull container & test
-```
-apptainer pull docker://dfam/tetools:1.88
-
-apptainer exec --bind /mnt/shared:/mnt/shared -H /mnt/shared/home/jnprice $APPS/singularity_cache/tetools_1.88.sif RepeatModeler -help
-```
-
-```
-#! -pa = threads
-
-BuildDatabase -name arabidopsis TAIR10_chr_all.fas
-
-RepeatModeler -database arabidopsis -pa 16 -LTRStruct > out.log
-
-RepeatMasker -pa 16 -gff -lib consensi.fa.classified -dir MaskerOutput TAIR10_chr_all.fas
-
-```

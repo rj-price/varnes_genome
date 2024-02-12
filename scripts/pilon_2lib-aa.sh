@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH -J pilon
-#SBATCH --partition=long
-#SBATCH --mem=60G
+#SBATCH --partition=medium
+#SBATCH --mem=80G
 #SBATCH --cpus-per-task=16
 
 # Align raw reads to a pacbio assembly and then use this alignmeant to correct
@@ -88,10 +88,10 @@ for i in $(seq 1 $Iterations); do
   # Run pilon to polish
 
   if [ $Ploidy == "haploid" ]; then
-    java -Xmx200G -jar /mnt/shared/scratch/jnprice/apps/conda/pkgs/pilon-1.24-hdfd78af_0/share/pilon-1.24-0/pilon.jar --threads $Threads --genome assembly.fa --changes --frags assembly.fa_aligned_sorted.bam --outdir .
+    java -Xmx80G -jar /mnt/shared/scratch/jnprice/apps/conda/pkgs/pilon-1.24-hdfd78af_0/share/pilon-1.24-0/pilon.jar --threads $Threads --genome assembly.fa --changes --frags assembly.fa_aligned_sorted.bam --outdir .
   elif [ $Ploidy == "diploid" ]; then
     JavaDir=/projects/oldhome/armita/prog/pilon
-    java -Xmx512G -jar /home/pricej/miniconda3/pkgs/pilon-1.23-2/share/pilon-1.23-2/pilon-1.23.jar --threads $Threads --genome assembly.fa --changes --diploid --frags assembly.fa_aligned_sorted.bam --outdir .
+    java -Xmx80G -jar /home/pricej/miniconda3/pkgs/pilon-1.23-2/share/pilon-1.23-2/pilon-1.23.jar --threads $Threads --genome assembly.fa --changes --diploid --frags assembly.fa_aligned_sorted.bam --outdir .
   else
     echo "ploidy not recognised"
   fi

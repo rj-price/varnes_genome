@@ -1,0 +1,15 @@
+assemblies
+dotplot_test
+illumina
+long_polish
+longstitch
+organelle_check
+pilon
+purge_dups
+quast_test
+repeat_masker
+Rsp4_filt.fastq.gz
+Rsp4_highqual.fastq.gz
+Rsp4_trim.fastq.gz
+slurm_out
+svim
