@@ -397,23 +397,6 @@ C:97.3%[S:78.6%,D:18.7%],F:0.3%,M:2.4%,n:2326
 
 # TOOL TESTING
 
-## Centromics
-Install software
-```
-git clone --recurse-submodules https://github.com/zhangrengang/Centromics
-cd Centromics
-conda env create -f Centromics.yaml
-conda activate RepCent
-./install.sh
-centromics -h
-```
-
-Run
-```
-sbatch centromics.sh ~/scratch/varnes_genome/Rsp4_highqual.fastq.gz ~/scratch/varnes_genome/final/Rsp4_final.fasta
-```
-
-
 ## Quast Test
 ```
 sbatch ../scripts/quast.sh \
@@ -426,8 +409,7 @@ sbatch ../scripts/quast.sh \
     /mnt/shared/scratch/jnprice/varnes_genome/final/Rsp4_final.fasta
 ```
 
-
-### Synteny plots
+## Synteny plots
 ```
 # Generate chromosome length files
 faidx ../svim/RiMJ_ragtag_HiC.fasta -i chromsizes > MJ_ls.len
