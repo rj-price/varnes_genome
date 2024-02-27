@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J quast
 #SBATCH --partition=long
-#SBATCH --mem=40G
+#SBATCH --mem=80G
 #SBATCH --cpus-per-task=8
 
 Ref=$1

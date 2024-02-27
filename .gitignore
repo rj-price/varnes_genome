@@ -1,12 +1,16 @@
+annotation
 assemblies
+centromics
+comparison_plots
 dotplot_test
+final
 illumina
 long_polish
 longstitch
 organelle_check
 pilon
 purge_dups
-quast_test
+quast
 repeat_masker
 Rsp4_filt.fastq.gz
 Rsp4_highqual.fastq.gz
