@@ -386,3 +386,53 @@ C:97.3%[S:78.6%,D:18.7%],F:0.3%,M:2.4%,n:2326
 2326    Total BUSCO groups searched 
 
 ```
+
+
+## Orthology
+
+To identify orthologs of the anthocyanin pathway, perform OrthoFinder run with Rubus proteomes, with F. vesca and Prunus mume proteomes as reference.
+
+```bash
+wget https://www.rosaceae.org/rosaceae_downloads/Fragaria_vesca/Fvesca-genome.v4.0.a2/genes/Fragaria_vesca_v4.0.a2.proteins.fa.gz
+wget https://www.rosaceae.org/rosaceae_downloads/Prunus_mume/pmume_Tortuosa_v1/genes/Pmume.tortuosa.pep.fasta.gz
+
+sbatch $scriptsDir/orthofinder.sh .
+```
+
+Fv ortholog of UF3GT = FvH4_2g05603.t1
+
+## Further TE Analysis
+From https://www.mdpi.com/2311-7524/10/2/111: \
+*The four pomegranate genomes were scanned for Class I and II TEs using EDTA v1.9.3 [42]. EDTA implementing a combination of LTR_FINDER v1.06 [43], LTRharvest v1.5.10 [44], and LTR_retriever v2.5 [45] was used for the search of LTR-REs. Generic Repeat Finder v1.0.2 [46] and TIR-Learner v1.18 [47] were used for the identification of DNA MITE and TIR elements, respectively. HelitronScanner v1.1 [48] was used for searching the Helitron elements. All the program parameters were automatically set, as reported in the default pipeline [42], and only full-length TEs were retained for analysis.*
+
+[The Extensive de novo TE Annotator (EDTA)](https://github.com/oushujun/EDTA)
+
+Install:
+```bash
+git clone https://github.com/oushujun/EDTA.git
+conda env create -f EDTA_2.2.x.yml
+conda activate EDTA2
+```
+
+Copy final assembly and CDS fasta files to directoryt and run:
+```
+sbatch $scriptsDir/edta.sh \
+    Rsp4_final.fasta \
+    Rsp4_cds.fasta
+```
+
+## DANTE
+
+Install:
+```bash
+conda create -n dante -c conda-forge -c bioconda -c petrnovak dante
+
+conda activate dante 
+
+git clone https://github.com/kavonrtep/dante.git
+```
+
+Run:
+```bash
+sbatch $scriptsDir/dante.sh ../final/Rsp4_final.fasta
+```
